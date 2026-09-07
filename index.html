@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IoT Network Simulator</title>
+
+  <!--
+    ╔══════════════════════════════════════════════════════════════════════════╗
+    ║  IoT Network Simulator                                                  ║
+    ║  Architecture: Pure Client-Side HTML5 Canvas + Web Workers + Chart.js  ║
+    ║  Team Lead: Joel Lijo Mathew                                            ║
+    ║  Team: George · Abhiram · Naveen · Abhishek · Anand · Levin            ║
+    ║         Aditya · Jebin · Adithyan · Ameen                              ║
+    ╚══════════════════════════════════════════════════════════════════════════╝
+  -->
+
+  <!-- App stylesheet (Levin Polly) -->
+  <link rel="stylesheet" href="styles/main.css" />
+
+  <!-- Chart.js via CDN (Aditya M Manojkumar) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+  <!-- Google Fonts (optional — loads Inter for UI, JetBrains Mono for terminal) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+<div id="app-shell">
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       TOP NAVIGATION BAR  —  Levin Polly (Control Panel & UI Layout)
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <header id="topbar">
+
+    <!-- Brand -->
+    <div class="brand">
+      <span class="brand-icon">🌐</span>
+      <span class="brand-title">IoT Network Simulator</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Scenario selector (Adithyan Sreekumar) -->
+    <select id="scenario-select" title="Select preset topology">
+      <option value="smart-factory">🏭 Smart Factory</option>
+      <option value="unstable-wireless">📡 Unstable Wireless</option>
+      <option value="smart-city">🌆 Smart City</option>
+    </select>
+
+    <div class="divider"></div>
+
+    <!-- Simulation controls -->
+    <button id="btn-start" class="btn btn-primary" title="Start simulation">▶ Start</button>
+    <button id="btn-pause" class="btn btn-warning" title="Pause simulation" disabled>⏸ Pause</button>
+    <button id="btn-reset" class="btn btn-info"    title="Reset simulation" disabled>↺ Reset</button>
+
+    <div class="divider"></div>
+
+    <!-- Speed multipliers -->
+    <div class="speed-group">
+      <span class="speed-label">Speed:</span>
+      <button id="btn-speed-0_5" class="btn-speed" title="0.5× speed">0.5×</button>
+      <button id="btn-speed-1"   class="btn-speed active" title="1× speed (default)">1×</button>
+      <button id="btn-speed-2"   class="btn-speed" title="2× speed">2×</button>
+      <button id="btn-speed-5"   class="btn-speed" title="5× speed">5×</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Status badge -->
+    <span id="sim-status" class="status-badge status-stopped">STOPPED</span>
+
+    <!-- HUD metrics strip -->
+    <div class="hud-strip">
+      <div class="hud-item">
+        <span class="hud-label">Sent</span>
+        <span id="hud-sent" class="hud-value">0</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">Delivered</span>
+        <span id="hud-delivered" class="hud-value green">0</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">Dropped</span>
+        <span id="hud-dropped" class="hud-value red">0</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">Loss</span>
+        <span id="hud-loss" class="hud-value orange">0.0%</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">Avg Latency</span>
+        <span id="hud-latency" class="hud-value blue">0.0 ms</span>
+      </div>
+    </div>
+
+  </header><!-- /#topbar -->
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       CANVAS AREA  —  George S Thuruthippillil (Canvas Engine)
+                        Abhiram Ranjith (Particle Animation)
+                        Naveen S (Drag-and-Drop)
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <main id="canvas-wrap">
+
+    <!-- Interactive simulation canvas -->
+    <canvas id="networkCanvas" aria-label="IoT Network Topology Canvas"></canvas>
+
+    <!-- Corner info badge -->
+    <div id="canvas-badge">Drag nodes to reposition</div>
+
+  </main><!-- /#canvas-wrap -->
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       SIDEBAR  —  Multiple team members (see sections below)
+       ═══════════════════════════════════════════════════════════════════════ -->
+  <aside id="sidebar">
+
+    <!-- Packet colour legend -->
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#4CAF50;"></div>
+        <span>Delivered</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#FF9800;"></div>
+        <span>In Transit</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#F44336;"></div>
+        <span>Dropped</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#29B6F6;"></div>
+        <span>Queued</span>
+      </div>
+    </div>
+
+    <!-- ─── Chaos Controls  —  Jebin Thankachen Sabu ─────────────────────── -->
+    <section class="panel">
+      <div class="panel-title">⚡ Network Chaos</div>
+
+      <div class="slider-group">
+
+        <!-- Packet Loss Rate -->
+        <div class="slider-row">
+          <div class="slider-header">
+            <span class="slider-name" data-tip="Probability of each packet being dropped">
+              Packet Loss Rate
+            </span>
+            <span id="slider-loss-val" class="slider-val">5%</span>
+          </div>
+          <input
+            type="range"
+            id="slider-loss"
+            min="0" max="100" step="1"
+            value="5"
+            aria-label="Packet Loss Rate"
+          />
+        </div>
+
+        <!-- Base Latency -->
+        <div class="slider-row">
+          <div class="slider-header">
+            <span class="slider-name" data-tip="Base network transmission delay">
+              Base Latency
+            </span>
+            <span id="slider-latency-val" class="slider-val">80 ms</span>
+          </div>
+          <input
+            type="range"
+            id="slider-latency"
+            min="5" max="2000" step="5"
+            value="80"
+            aria-label="Base Latency"
+          />
+        </div>
+
+        <!-- Jitter -->
+        <div class="slider-row">
+          <div class="slider-header">
+            <span class="slider-name" data-tip="Random variation added to latency (±value)">
+              Jitter (±ms)
+            </span>
+            <span id="slider-jitter-val" class="slider-val">20 ms</span>
+          </div>
+          <input
+            type="range"
+            id="slider-jitter"
+            min="0" max="500" step="5"
+            value="20"
+            aria-label="Latency Jitter"
+          />
+        </div>
+
+      </div><!-- /.slider-group -->
+
+      <!-- Fault injection buttons -->
+      <div class="fault-buttons">
+        <button
+          id="btn-kill-gateway"
+          class="btn btn-danger"
+          title="Temporarily kill the first active gateway (8s auto-restore)"
+        >
+          💀 Kill Gateway
+        </button>
+        <button
+          id="btn-traffic-surge"
+          class="btn btn-warning"
+          title="Spike sensor emission rate 10× for 6 seconds"
+        >
+          🚨 Traffic Surge
+        </button>
+      </div>
+
+    </section><!-- /Chaos Controls -->
+
+    <!-- ─── Analytics Charts  —  Aditya M Manojkumar ────────────────────── -->
+    <section class="panel charts-panel">
+      <div class="panel-title">📊 Live Analytics</div>
+
+      <div class="chart-title">Packet Loss %</div>
+      <div class="chart-container">
+        <canvas id="lossChart" aria-label="Packet Loss Chart"></canvas>
+      </div>
+
+      <div class="chart-title">Avg Network Latency (ms)</div>
+      <div class="chart-container">
+        <canvas id="latencyChart" aria-label="Latency Chart"></canvas>
+      </div>
+
+    </section><!-- /Analytics Charts -->
+
+    <!-- ─── Terminal Console  —  Ameen P Jami ──────────────────────────── -->
+    <section class="panel terminal-panel">
+      <div class="panel-title">🖥️ Event Log</div>
+
+      <div id="terminal-output" aria-live="polite" aria-label="Simulation event log">
+        <!-- Log lines injected by terminal.js -->
+      </div>
+
+      <div class="export-buttons">
+        <button
+          id="btn-export-csv"
+          class="btn btn-info"
+          title="Download simulation log as CSV"
+          onclick="Terminal.exportCSV()"
+        >
+          📥 CSV
+        </button>
+        <button
+          id="btn-export-json"
+          class="btn btn-info"
+          title="Download simulation log as JSON"
+          onclick="Terminal.exportJSON()"
+        >
+          📥 JSON
+        </button>
+        <button
+          id="btn-clear-log"
+          class="btn"
+          title="Clear terminal log"
+          onclick="Terminal.clear()"
+        >
+          🗑️ Clear
+        </button>
+      </div>
+
+    </section><!-- /Terminal Console -->
+
+  </aside><!-- /#sidebar -->
+
+</div><!-- /#app-shell -->
+
+<!-- =============================================================================
+     JavaScript Modules — loaded in dependency order
+     ============================================================================= -->
+
+<!-- Abhishek V — Telemetry & Payload Generator -->
+<script src="js/telemetry.js"></script>
+
+<!-- Anand S — Gateway Queue Logic -->
+<script src="js/gateway.js"></script>
+
+<!-- Ameen P Jami — Terminal Console & Data Export -->
+<script src="js/terminal.js"></script>
+
+<!-- George S Thuruthippillil — Canvas Engine & Layout -->
+<script src="js/canvas.js"></script>
+
+<!-- Abhiram Ranjith — Particle & Animation Loop -->
+<script src="js/particles.js"></script>
+
+<!-- Naveen S — Drag-and-Drop & Interactivity -->
+<script src="js/drag.js"></script>
+
+<!-- Aditya M Manojkumar — Chart.js Analytics Engine -->
+<script src="js/charts.js"></script>
+
+<!-- Adithyan Sreekumar — Preset Scenarios & Topologies -->
+<script src="js/scenarios.js"></script>
+
+<!-- Jebin Thankachen Sabu — Chaos Sliders & Fault Injection -->
+<script src="js/chaos.js"></script>
+
+<!-- Levin Polly — Control Panel & UI Layout -->
+<script src="js/ui.js"></script>
+
+<!-- Joel Lijo Mathew — Team Lead: App Bootstrap + Web Worker Architecture -->
+<script src="js/main.js"></script>
+
+</body>
+</html>
