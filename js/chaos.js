@@ -35,6 +35,9 @@ const ChaosEngine = (() => {
 
     if (btnKill)  btnKill.addEventListener('click',  onKillGateway);
     if (btnSurge) btnSurge.addEventListener('click', onTrafficSurge);
+
+    const btnDrain = document.getElementById('btn-fast-drain');
+    if (btnDrain) btnDrain.addEventListener('click', onFastDrain);
   }
 
   /**
@@ -182,6 +185,45 @@ const ChaosEngine = (() => {
   }
 
   /**
+   * Called when a link changes state (scissors tool / drawer). Visual-only
+   * flash + log; routing drops happen in SimEngine via link-state lookup.
+   * @param {string} linkId
+   * @param {string} state up|flapping|down
+   */
+  function onLinkStateChanged(linkId, state) {
+    const link = (() => { try { return GraphStore.getLink(linkId); } catch (e) { return null; } })();
+    const label = link ? `${link.source} → ${link.target}` : linkId;
+    if (state === 'down') {
+      Terminal.log(`✂ LINK DOWN — ${label} severed, in-flight drops at point`, 'error');
+      flashCanvasPerimeter();
+      try { CanvasEngine.renderNow(); } catch (e) {}
+      try { MetricsRegistry.incCounter('iot_packets_dropped_total', { topology: MetricsRegistry.getTopology(), node_id: link ? link.source : linkId, node_type: 'link', sensor_type: '', reason: 'link_down' }, 0); } catch (e) {}
+    } else if (state === 'flapping') {
+      Terminal.log(`〰 LINK FLAPPING — ${label} RF interference (50% + jitter)`, 'warn');
+      try { CanvasEngine.renderNow(); } catch (e) {}
+    } else {
+      Terminal.log(`✅ LINK UP — ${label} restored`, 'success');
+      try { CanvasEngine.renderNow(); } catch (e) {}
+    }
+  }
+
+  function flashCanvasPerimeter() {
+    const wrap = document.getElementById('canvas-wrap');
+    if (!wrap) return;
+    wrap.classList.remove('incident-flash');
+    void wrap.offsetWidth; // restart animation
+    wrap.classList.add('incident-flash');
+    setTimeout(() => wrap.classList.remove('incident-flash'), 950);
+  }
+
+  function onFastDrain() {
+    const v = BatteryEngine.setFastDrain(!BatteryEngine.isFastDrain());
+    const btn = document.getElementById('btn-fast-drain');
+    const val = document.getElementById('toggle-drain-val');
+    if (btn) btn.textContent = v ? '🔋 Fast-Drain: ON' : '🔋 Fast-Drain: OFF';
+    if (val) val.textContent = v ? '10×' : 'off';
+  }
+  /**
    * Updates Kill Gateway button text to reflect current state.
    */
   function updateKillButton() {
@@ -248,6 +290,7 @@ const ChaosEngine = (() => {
     resetAll,
     killGateway,
     restoreGateway,
+    onLinkStateChanged,
     isKilled:    (id) => killedGateways.has(id),
     getLoss:     () => lossRate,
     getLatency:  () => latencyMs,

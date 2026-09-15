@@ -14,12 +14,15 @@ const ParticleEngine = (() => {
   let animFrameId = null;
   let isRunning   = false;
 
-  // Status → colour mapping
+  // Status → colour mapping (M3: cyan transit, amber CON/retry, grey dead)
   const STATUS_COLORS = {
-    'in-transit': '#29B6F6',  // Blue (travelling)
+    'in-transit': '#00E5FF',  // Cyan (travelling NON)
+    'con':        '#FFB300',  // Amber (CON critical / retry)
+    'ack':        '#00E5FF',  // Cyan reverse ACK
     'queued':     '#FF9800',  // Orange (in gateway buffer)
     'delivered':  '#4CAF50',  // Green (reached server)
     'dropped':    '#F44336',  // Red (packet lost)
+    'dead':       '#9AA6BC',  // Grey (battery-dead / no-route)
   };
 
   const PARTICLE_RADIUS   = 5;
@@ -77,7 +80,7 @@ const ParticleEngine = (() => {
   function createParticle(fromNode, toNode, status, packetMeta = {}) {
     const dx   = toNode.x - fromNode.x;
     const dy   = toNode.y - fromNode.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
+    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
 
     particles.push({
       x:        fromNode.x,
@@ -96,8 +99,11 @@ const ParticleEngine = (() => {
       radius:   PARTICLE_RADIUS,
       alpha:    1,
       meta:     packetMeta,
+      coapType: packetMeta?.coap?.typeName || packetMeta?.coapType || null,
+      lowPower: !!packetMeta?.lowPower,
       done:     false,
     });
+    if (particles.length > 400) particles = particles.slice(-400);
   }
 
   /**
@@ -174,6 +180,17 @@ const ParticleEngine = (() => {
 
   // ─── Public API ──────────────────────────────────────────────────────────────
 
+  /** Hit-test particles for PDU click (12px tolerance). Returns particle meta or null. */
+  function hitTest(px, py) {
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      if (p.burst) continue;
+      const dx = px - p.x, dy = py - p.y;
+      if (dx * dx + dy * dy <= 14 * 14) return p;
+    }
+    return null;
+  }
+
   return {
     start,
     pause,
@@ -181,6 +198,7 @@ const ParticleEngine = (() => {
     setSpeed,
     createParticle,
     createDropBurst,
+    hitTest,
     getParticles:     () => particles,
     STATUS_COLORS,
   };
