@@ -47,6 +47,7 @@ const Terminal = (() => {
 
     logBuffer.push(entry);
     renderLine(entry);
+    try { TraceStore?.push?.(entry); } catch (e) {}
 
     // Keep buffer bounded
     if (logBuffer.length > MAX_LINES) {
@@ -68,6 +69,14 @@ const Terminal = (() => {
     div.innerHTML =
       `<span class="log-time">${timeStr}</span>` +
       `<span class="log-msg">${escapeHtml(entry.msg)}</span>`;
+
+    // Click packet line -> pause + PDU modal (M5)
+    if (entry.packetData) {
+      div.title = 'Click to inspect PDU';
+      div.addEventListener('click', () => {
+        try { Inspector.openPDU(entry.packetData); } catch (e) {}
+      });
+    }
 
     terminalEl.appendChild(div);
     lineCount++;
@@ -98,20 +107,28 @@ const Terminal = (() => {
    * Exports the current log buffer as a downloadable CSV file.
    */
   function exportCSV() {
-    const headers = ['Timestamp', 'Level', 'Message', 'PacketID', 'SensorID', 'SensorType', 'Value', 'Unit', 'Status', 'Latency(ms)'];
+    const headers = ['Timestamp', 'Level', 'Message', 'PacketID', 'SensorID', 'SensorType', 'Value', 'Unit', 'Status', 'DropReason', 'Latency(ms)', 'CoAPType', 'MID', 'Token', 'TTL', 'SrcIP', 'DstIP'];
     const rows = logBuffer.map(e => {
       const p = e.packetData;
+      const c = p ? (p.coap || {}) : {};
       return [
         e.time,
         e.level,
         `"${e.msg.replace(/"/g, '""')}"`,
         p ? p.id          : '',
-        p ? p.sensorId    : '',
-        p ? p.sensorType  : '',
-        p ? p.value       : '',
-        p ? p.unit        : '',
-        p ? p.status      : '',
-        p ? p.latency     : '',
+        p ? (p.sensorId || '')    : '',
+        p ? (p.sensorType || '')  : '',
+        p ? (p.value ?? '')       : '',
+        p ? (p.unit || '')        : '',
+        p ? (p.status || '')      : '',
+        p ? (p.dropReason || '')  : '',
+        p ? (p.latency ?? '')     : '',
+        c.typeName || p?.coapType || '',
+        c.mid ?? '',
+        c.token || '',
+        c.ttl ?? p?.ttl ?? '',
+        p?.srcIp || '',
+        p?.dstIp || '',
       ].join(',');
     });
 
@@ -129,6 +146,18 @@ const Terminal = (() => {
     log('📥 JSON exported successfully', 'success');
   }
 
+  /**
+   * Exports the in-memory Prometheus exposition buffer (.prom snapshot, M4).
+   */
+  function exportProm() {
+    try {
+      const content = MetricsRegistry.exportPromText();
+      triggerDownload('metrics-snapshot.prom', content, 'text/plain');
+      log('📥 .prom snapshot exported successfully', 'success');
+    } catch (e) {
+      log(`❌ .prom export failed: ${e.message}`, 'error');
+    }
+  }
   /**
    * Triggers a file download in the browser.
    * @param {string} filename
@@ -166,6 +195,7 @@ const Terminal = (() => {
     clear,
     exportCSV,
     exportJSON,
+    exportProm,
     getBuffer: () => [...logBuffer],
   };
 })();

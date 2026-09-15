@@ -1,0 +1,37 @@
+/* Studio: floating toolbox + canvas badges (M1/M2) */
+
+#studio-toolbar {
+  position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 6px; align-items: center;
+  background: rgba(16,24,40,0.92); border: 1px solid var(--border);
+  border-radius: 10px; padding: 6px 8px; z-index: 40;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.45);
+}
+.tool-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 10px; font-size: 11px; font-weight: 600;
+  background: transparent; color: var(--text-secondary);
+  border: 1px solid transparent; border-radius: 7px; cursor: pointer;
+}
+.tool-btn:hover { color: var(--text-primary); background: rgba(255,255,255,0.05); }
+.tool-btn.active-tool { color: var(--accent-cyan); border-color: var(--accent-cyan); background: rgba(0,229,255,0.1); }
+.tool-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.tool-sep { width: 1px; height: 20px; background: var(--border); }
+
+#studio-statusbar {
+  position: absolute; bottom: 10px; left: 12px; right: 12px;
+  display: flex; gap: 10px; align-items: center;
+  font-family: var(--font-mono); font-size: 10.5px; color: var(--text-dim);
+  pointer-events: none; z-index: 30;
+}
+#studio-statusbar .pill {
+  background: rgba(0,0,0,0.55); border: 1px solid var(--border);
+  border-radius: 20px; padding: 3px 10px; pointer-events: auto;
+}
+#link-draft-hint {
+  position: absolute; bottom: 38px; left: 50%; transform: translateX(-50%);
+  background: rgba(0,229,255,0.12); border: 1px solid var(--accent-cyan);
+  color: var(--accent-cyan); font-size: 11px; font-weight: 600;
+  padding: 5px 12px; border-radius: 20px; display: none; z-index: 40;
+}
+#link-draft-hint.show { display: block; }

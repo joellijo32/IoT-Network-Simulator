@@ -7,309 +7,239 @@
 
   <!--
     ╔══════════════════════════════════════════════════════════════════════════╗
-    ║  IoT Network Simulator                                                  ║
-    ║  Architecture: Pure Client-Side HTML5 Canvas + Web Workers + Chart.js  ║
-    ║  Team Lead: Joel Lijo Mathew                                            ║
-    ║  Team: George · Abhiram · Naveen · Abhishek · Anand · Levin            ║
-    ║         Aditya · Jebin · Adithyan · Ameen                              ║
+    ║  IoT Network Simulator — M1 workspaces + offline vendor                  ║
+    ║  Zero-build: python3 -m http.server — no CDN, no fonts, no npm           ║
+    ║  Team Lead: Joel Lijo Mathew                                             ║
+    ║  Team: George · Abhiram · Naveen · Abhishek · Anand · Levin             ║
+    ║         Aditya · Jebin · Adithyan · Ameen                               ║
     ╚══════════════════════════════════════════════════════════════════════════╝
   -->
 
-  <!-- App stylesheet (Levin Polly) -->
   <link rel="stylesheet" href="styles/main.css" />
+  <link rel="stylesheet" href="styles/studio.css" />
+  <link rel="stylesheet" href="styles/dashboard.css" />
 
-  <!-- Chart.js via CDN (Aditya M Manojkumar) -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-
-  <!-- Google Fonts (optional — loads Inter for UI, JetBrains Mono for terminal) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <!-- Chart.js vendored locally for 100% offline safety (M1) -->
+  <script src="vendor/chart.umd.min.js"></script>
 </head>
 <body>
 
 <div id="app-shell">
 
-  <!-- ═══════════════════════════════════════════════════════════════════════
-       TOP NAVIGATION BAR  —  Levin Polly (Control Panel & UI Layout)
-       ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- Top bar: brand + scenario + sim controls + speed + status + HUD -->
   <header id="topbar">
-
-    <!-- Brand -->
     <div class="brand">
       <span class="brand-icon">🌐</span>
       <span class="brand-title">IoT Network Simulator</span>
     </div>
-
     <div class="divider"></div>
-
-    <!-- Scenario selector (Adithyan Sreekumar) -->
     <select id="scenario-select" title="Select preset topology">
       <option value="smart-factory">🏭 Smart Factory</option>
       <option value="unstable-wireless">📡 Unstable Wireless</option>
       <option value="smart-city">🌆 Smart City</option>
+      <option value="__custom">🧩 Custom (Studio)</option>
     </select>
-
     <div class="divider"></div>
-
-    <!-- Simulation controls -->
     <button id="btn-start" class="btn btn-primary" title="Start simulation">▶ Start</button>
     <button id="btn-pause" class="btn btn-warning" title="Pause simulation" disabled>⏸ Pause</button>
-    <button id="btn-reset" class="btn btn-info"    title="Reset simulation" disabled>↺ Reset</button>
-
+    <button id="btn-step" class="btn btn-info" title="Step forward exactly 1 tick (800ms) — pauses first" disabled>⏭ Step</button>
+    <button id="btn-reset" class="btn btn-info" title="Reset simulation" disabled>↺ Reset</button>
     <div class="divider"></div>
-
-    <!-- Speed multipliers -->
     <div class="speed-group">
       <span class="speed-label">Speed:</span>
       <button id="btn-speed-0_5" class="btn-speed" title="0.5× speed">0.5×</button>
-      <button id="btn-speed-1"   class="btn-speed active" title="1× speed (default)">1×</button>
-      <button id="btn-speed-2"   class="btn-speed" title="2× speed">2×</button>
-      <button id="btn-speed-5"   class="btn-speed" title="5× speed">5×</button>
+      <button id="btn-speed-1" class="btn-speed active" title="1× speed (default)">1×</button>
+      <button id="btn-speed-2" class="btn-speed" title="2× speed">2×</button>
+      <button id="btn-speed-5" class="btn-speed" title="5× speed">5×</button>
     </div>
-
     <div class="divider"></div>
-
-    <!-- Status badge -->
     <span id="sim-status" class="status-badge status-stopped">STOPPED</span>
-
-    <!-- HUD metrics strip -->
     <div class="hud-strip">
-      <div class="hud-item">
-        <span class="hud-label">Sent</span>
-        <span id="hud-sent" class="hud-value">0</span>
-      </div>
-      <div class="hud-item">
-        <span class="hud-label">Delivered</span>
-        <span id="hud-delivered" class="hud-value green">0</span>
-      </div>
-      <div class="hud-item">
-        <span class="hud-label">Dropped</span>
-        <span id="hud-dropped" class="hud-value red">0</span>
-      </div>
-      <div class="hud-item">
-        <span class="hud-label">Loss</span>
-        <span id="hud-loss" class="hud-value orange">0.0%</span>
-      </div>
-      <div class="hud-item">
-        <span class="hud-label">Avg Latency</span>
-        <span id="hud-latency" class="hud-value blue">0.0 ms</span>
-      </div>
+      <div class="hud-item"><span class="hud-label">Sent</span><span id="hud-sent" class="hud-value">0</span></div>
+      <div class="hud-item"><span class="hud-label">Delivered</span><span id="hud-delivered" class="hud-value green">0</span></div>
+      <div class="hud-item"><span class="hud-label">Dropped</span><span id="hud-dropped" class="hud-value red">0</span></div>
+      <div class="hud-item"><span class="hud-label">Loss</span><span id="hud-loss" class="hud-value orange">0.0%</span></div>
+      <div class="hud-item"><span class="hud-label">Avg Latency</span><span id="hud-latency" class="hud-value blue">0.0 ms</span></div>
+      <div class="hud-item"><span class="hud-label">Avail</span><span id="hud-avail" class="hud-value amber">100.0%</span></div>
     </div>
+  </header>
 
-  </header><!-- /#topbar -->
+  <!-- Workspace tab switcher (keys 1/2/3) -->
+  <nav id="workspace-tabs" aria-label="Workspace switcher">
+    <button class="ws-tab active" data-view="studio" title="Topology Studio"><kbd>1</kbd> 🧪 Topology Studio</button>
+    <button class="ws-tab" data-view="observability" title="Observability Desk"><kbd>2</kbd> 📊 Observability Desk</button>
+    <button class="ws-tab" data-view="inspector" title="Protocol Inspector"><kbd>3</kbd> 🔬 Protocol Inspector</button>
+  </nav>
 
-  <!-- ═══════════════════════════════════════════════════════════════════════
-       CANVAS AREA  —  George S Thuruthippillil (Canvas Engine)
-                        Abhiram Ranjith (Particle Animation)
-                        Naveen S (Drag-and-Drop)
-       ═══════════════════════════════════════════════════════════════════════ -->
-  <main id="canvas-wrap">
+  <div id="workspace">
+    <!-- ═══ VIEW 1: Topology Studio ═══ -->
+    <section id="view-studio" class="ws-view active" aria-label="Topology Studio">
+      <div id="studio-layout">
+        <main id="canvas-wrap">
+          <canvas id="networkCanvas" aria-label="IoT Network Topology Canvas"></canvas>
+          <div id="studio-toolbar" role="toolbar" aria-label="Topology tools">
+            <button class="tool-btn active-tool" data-tool="pointer" title="Move / select nodes (V)">✥ Move</button>
+            <span class="tool-sep"></span>
+            <button class="tool-btn" data-tool="add-sensor" title="Add sensor node">＋Sensor</button>
+            <button class="tool-btn" data-tool="add-gateway" title="Add gateway node">＋Gateway</button>
+            <button class="tool-btn" data-tool="add-server" title="Add server node">＋Server</button>
+            <span class="tool-sep"></span>
+            <button class="tool-btn" data-tool="link" title="Link tool: click source then target (L)">🔗 Link</button>
+            <button class="tool-btn" data-tool="scissors" title="Scissors: click a link to sever/restore (X)">✂ Cut</button>
+            <button class="tool-btn" data-tool="delete" title="Delete selected node/link (Del)">🗑 Del</button>
+            <span class="tool-sep"></span>
+            <button class="tool-btn" id="btn-export-topo" title="Export topology JSON">📥 Export</button>
+            <button class="tool-btn" id="btn-import-topo" title="Import topology JSON">📤 Import</button>
+            <input type="file" id="file-import-topo" accept="application/json,.json" hidden />
+          </div>
+          <div id="canvas-badge">Move: drag nodes · Link: source→target · Cut: click link</div>
+          <div id="link-draft-hint">Click a target node to complete link — Esc cancels</div>
+          <div id="studio-statusbar">
+            <span class="pill" id="status-nodes">7 nodes</span>
+            <span class="pill" id="status-links">6 links</span>
+            <span class="pill" id="status-tool">tool: move</span>
+            <span class="pill" id="status-sel">sel: —</span>
+          </div>
+          <!-- Slide-over Inspector Drawer -->
+          <aside id="inspector-drawer" aria-label="Node inspector">
+            <div class="drawer-header">
+              <h3 id="drawer-title">Inspector</h3>
+              <button class="btn btn-ghost" id="btn-drawer-close" title="Close (Esc)">✕</button>
+            </div>
+            <div class="drawer-body" id="drawer-body"><!-- filled by inspector.js --></div>
+          </aside>
+        </main>
 
-    <!-- Interactive simulation canvas -->
-    <canvas id="networkCanvas" aria-label="IoT Network Topology Canvas"></canvas>
+        <aside id="sidebar">
+          <div class="legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#4CAF50;"></div><span>Delivered</span></div>
+            <div class="legend-item"><div class="legend-dot" style="background:#00E5FF;"></div><span>In Transit</span></div>
+            <div class="legend-item"><div class="legend-dot" style="background:#FFB300;"></div><span>CON/Retry</span></div>
+            <div class="legend-item"><div class="legend-dot" style="background:#F44336;"></div><span>Dropped</span></div>
+            <div class="legend-item"><div class="legend-dot" style="background:#9AA6BC;"></div><span>Dead/No-route</span></div>
+          </div>
 
-    <!-- Corner info badge -->
-    <div id="canvas-badge">Drag nodes to reposition</div>
+          <section class="panel">
+            <div class="panel-title">⚡ Network Chaos</div>
+            <div class="slider-group">
+              <div class="slider-row">
+                <div class="slider-header"><span class="slider-name" data-tip="Probability of each packet being dropped">Packet Loss Rate</span><span id="slider-loss-val" class="slider-val">5%</span></div>
+                <input type="range" id="slider-loss" min="0" max="100" step="1" value="5" aria-label="Packet Loss Rate" />
+              </div>
+              <div class="slider-row">
+                <div class="slider-header"><span class="slider-name" data-tip="Base network transmission delay">Base Latency</span><span id="slider-latency-val" class="slider-val">80 ms</span></div>
+                <input type="range" id="slider-latency" min="5" max="2000" step="5" value="80" aria-label="Base Latency" />
+              </div>
+              <div class="slider-row">
+                <div class="slider-header"><span class="slider-name" data-tip="Random variation added to latency (±value)">Jitter (±ms)</span><span id="slider-jitter-val" class="slider-val">20 ms</span></div>
+                <input type="range" id="slider-jitter" min="0" max="500" step="5" value="20" aria-label="Latency Jitter" />
+              </div>
+              <div class="slider-row">
+                <div class="slider-header"><span class="slider-name" data-tip="10× battery drain for fast demo (sensors only)">Fast-Drain 10×</span><span id="toggle-drain-val" class="slider-val">off</span></div>
+                <button id="btn-fast-drain" class="btn btn-warning" title="Toggle 10× battery drain">🔋 Fast-Drain: OFF</button>
+              </div>
+            </div>
+            <div class="fault-buttons">
+              <button id="btn-kill-gateway" class="btn btn-danger" title="Temporarily kill the first active gateway (8s auto-restore)">💀 Kill Gateway</button>
+              <button id="btn-traffic-surge" class="btn btn-warning" title="Spike sensor emission rate for 6 seconds">🚨 Traffic Surge</button>
+            </div>
+          </section>
 
-  </main><!-- /#canvas-wrap -->
+          <section class="panel charts-panel">
+            <div class="panel-title">📊 Live Analytics <span style="margin-left:auto"></span><button class="btn btn-ghost" id="btn-goto-dash" title="Open full Observability Desk (2)">⛶ Full</button></div>
+            <div class="chart-title">Packet Loss %</div>
+            <div class="chart-container"><canvas id="lossChart" aria-label="Packet Loss Chart"></canvas></div>
+            <div class="chart-title">Avg Network Latency (ms)</div>
+            <div class="chart-container"><canvas id="latencyChart" aria-label="Latency Chart"></canvas></div>
+          </section>
 
-  <!-- ═══════════════════════════════════════════════════════════════════════
-       SIDEBAR  —  Multiple team members (see sections below)
-       ═══════════════════════════════════════════════════════════════════════ -->
-  <aside id="sidebar">
-
-    <!-- Packet colour legend -->
-    <div class="legend">
-      <div class="legend-item">
-        <div class="legend-dot" style="background:#4CAF50;"></div>
-        <span>Delivered</span>
+          <section class="panel terminal-panel">
+            <div class="panel-title">🖥️ Event Log</div>
+            <div id="terminal-output" aria-live="polite" aria-label="Simulation event log"></div>
+            <div class="export-buttons">
+              <button id="btn-export-csv" class="btn btn-info" title="Download simulation log as CSV" onclick="Terminal.exportCSV()">📥 CSV</button>
+              <button id="btn-export-json" class="btn btn-info" title="Download simulation log as JSON" onclick="Terminal.exportJSON()">📥 JSON</button>
+              <button id="btn-export-prom" class="btn btn-info" title="Download Prometheus metrics snapshot (.prom)" onclick="Terminal.exportProm()">📥 .prom</button>
+              <button id="btn-clear-log" class="btn" title="Clear terminal log" onclick="Terminal.clear()">🗑️ Clear</button>
+            </div>
+          </section>
+        </aside>
       </div>
-      <div class="legend-item">
-        <div class="legend-dot" style="background:#FF9800;"></div>
-        <span>In Transit</span>
+    </section>
+
+    <!-- ═══ VIEW 2: Observability Desk ═══ -->
+    <section id="view-observability" class="ws-view" aria-label="Observability Desk">
+      <div class="dash-wrap">
+        <div class="dash-section-title">System KPIs · 60s rolling window</div>
+        <div class="kpi-grid">
+          <div class="kpi-card"><div class="kpi-label">System Availability</div><div class="kpi-value good" id="kpi-avail">100.0%</div><div class="kpi-sub" id="kpi-avail-sub">0 incidents</div></div>
+          <div class="kpi-card"><div class="kpi-label">Active / Total Nodes</div><div class="kpi-value info" id="kpi-nodes">0 / 0</div><div class="kpi-sub" id="kpi-nodes-sub">— links up</div></div>
+          <div class="kpi-card"><div class="kpi-label">Dropped Packets</div><div class="kpi-value bad" id="kpi-drops">0</div><div class="kpi-sub" id="kpi-drops-sub">loss 0.0%</div></div>
+          <div class="kpi-card"><div class="kpi-label">P95 Latency</div><div class="kpi-value" id="kpi-p95">0 ms</div><div class="kpi-sub" id="kpi-p95-sub">p50 0 ms</div></div>
+        </div>
+        <div class="dash-2col">
+          <div class="dash-panel"><h4>Throughput vs Packet Loss %</h4><div class="dash-chart"><canvas id="dash-tputChart"></canvas></div></div>
+          <div class="dash-panel"><h4>Latency P50 / P95 / P99 (ms)</h4><div class="dash-chart"><canvas id="dash-latChart"></canvas></div></div>
+        </div>
+        <div class="dash-2col">
+          <div class="dash-panel"><h4>Node State Timeline (Up / Degraded / Down)</h4><div id="state-timeline"></div></div>
+        </div>
       </div>
-      <div class="legend-item">
-        <div class="legend-dot" style="background:#F44336;"></div>
-        <span>Dropped</span>
+    </section>
+
+    <!-- ═══ VIEW 3: Protocol Inspector ═══ -->
+    <section id="view-inspector" class="ws-view" aria-label="Protocol Inspector">
+      <div class="inspector-layout">
+        <div class="trace-toolbar">
+          <strong>🔬 Trace</strong>
+          <input id="trace-filter" placeholder="filter: mid, node, reason… (e.g. link_down s1)" title="Substring filter over the trace table" />
+          <select id="trace-type-filter" title="Filter by CoAP type"><option value="">all types</option><option value="CON">CON</option><option value="NON">NON</option><option value="ACK">ACK</option></select>
+          <select id="trace-status-filter" title="Filter by status"><option value="">all status</option><option value="delivered">delivered</option><option value="dropped">dropped</option><option value="queued">queued</option></select>
+          <span style="flex:1"></span>
+          <span class="hud-label" id="trace-count">0 frames</span>
+          <button class="btn btn-ghost" id="btn-trace-clear" title="Clear trace buffer">🗑 Clear</button>
+        </div>
+        <div id="trace-table-wrap">
+          <table id="trace-table" aria-label="Packet trace">
+            <thead><tr><th>Time</th><th>Frame</th><th>Src → Dst</th><th>Type</th><th>MID</th><th>Path</th><th>Status / Reason</th><th>Lat</th></tr></thead>
+            <tbody id="trace-tbody"></tbody>
+          </table>
+        </div>
       </div>
-      <div class="legend-item">
-        <div class="legend-dot" style="background:#29B6F6;"></div>
-        <span>Queued</span>
-      </div>
+    </section>
+  </div>
+</div>
+
+<!-- PDU Inspector Modal -->
+<div id="modal-backdrop">
+  <div id="pdu-modal" role="dialog" aria-modal="true" aria-label="PDU Inspector">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <h3 style="flex:1">📦 PDU Inspector</h3>
+      <button class="btn btn-ghost" id="btn-pdu-close" title="Close (Esc)">✕ Close</button>
     </div>
+    <div id="pdu-body"></div>
+  </div>
+</div>
 
-    <!-- ─── Chaos Controls  —  Jebin Thankachen Sabu ─────────────────────── -->
-    <section class="panel">
-      <div class="panel-title">⚡ Network Chaos</div>
-
-      <div class="slider-group">
-
-        <!-- Packet Loss Rate -->
-        <div class="slider-row">
-          <div class="slider-header">
-            <span class="slider-name" data-tip="Probability of each packet being dropped">
-              Packet Loss Rate
-            </span>
-            <span id="slider-loss-val" class="slider-val">5%</span>
-          </div>
-          <input
-            type="range"
-            id="slider-loss"
-            min="0" max="100" step="1"
-            value="5"
-            aria-label="Packet Loss Rate"
-          />
-        </div>
-
-        <!-- Base Latency -->
-        <div class="slider-row">
-          <div class="slider-header">
-            <span class="slider-name" data-tip="Base network transmission delay">
-              Base Latency
-            </span>
-            <span id="slider-latency-val" class="slider-val">80 ms</span>
-          </div>
-          <input
-            type="range"
-            id="slider-latency"
-            min="5" max="2000" step="5"
-            value="80"
-            aria-label="Base Latency"
-          />
-        </div>
-
-        <!-- Jitter -->
-        <div class="slider-row">
-          <div class="slider-header">
-            <span class="slider-name" data-tip="Random variation added to latency (±value)">
-              Jitter (±ms)
-            </span>
-            <span id="slider-jitter-val" class="slider-val">20 ms</span>
-          </div>
-          <input
-            type="range"
-            id="slider-jitter"
-            min="0" max="500" step="5"
-            value="20"
-            aria-label="Latency Jitter"
-          />
-        </div>
-
-      </div><!-- /.slider-group -->
-
-      <!-- Fault injection buttons -->
-      <div class="fault-buttons">
-        <button
-          id="btn-kill-gateway"
-          class="btn btn-danger"
-          title="Temporarily kill the first active gateway (8s auto-restore)"
-        >
-          💀 Kill Gateway
-        </button>
-        <button
-          id="btn-traffic-surge"
-          class="btn btn-warning"
-          title="Spike sensor emission rate 10× for 6 seconds"
-        >
-          🚨 Traffic Surge
-        </button>
-      </div>
-
-    </section><!-- /Chaos Controls -->
-
-    <!-- ─── Analytics Charts  —  Aditya M Manojkumar ────────────────────── -->
-    <section class="panel charts-panel">
-      <div class="panel-title">📊 Live Analytics</div>
-
-      <div class="chart-title">Packet Loss %</div>
-      <div class="chart-container">
-        <canvas id="lossChart" aria-label="Packet Loss Chart"></canvas>
-      </div>
-
-      <div class="chart-title">Avg Network Latency (ms)</div>
-      <div class="chart-container">
-        <canvas id="latencyChart" aria-label="Latency Chart"></canvas>
-      </div>
-
-    </section><!-- /Analytics Charts -->
-
-    <!-- ─── Terminal Console  —  Ameen P Jami ──────────────────────────── -->
-    <section class="panel terminal-panel">
-      <div class="panel-title">🖥️ Event Log</div>
-
-      <div id="terminal-output" aria-live="polite" aria-label="Simulation event log">
-        <!-- Log lines injected by terminal.js -->
-      </div>
-
-      <div class="export-buttons">
-        <button
-          id="btn-export-csv"
-          class="btn btn-info"
-          title="Download simulation log as CSV"
-          onclick="Terminal.exportCSV()"
-        >
-          📥 CSV
-        </button>
-        <button
-          id="btn-export-json"
-          class="btn btn-info"
-          title="Download simulation log as JSON"
-          onclick="Terminal.exportJSON()"
-        >
-          📥 JSON
-        </button>
-        <button
-          id="btn-clear-log"
-          class="btn"
-          title="Clear terminal log"
-          onclick="Terminal.clear()"
-        >
-          🗑️ Clear
-        </button>
-      </div>
-
-    </section><!-- /Terminal Console -->
-
-  </aside><!-- /#sidebar -->
-
-</div><!-- /#app-shell -->
-
-<!-- =============================================================================
-     JavaScript Modules — loaded in dependency order
-     ============================================================================= -->
-
-<!-- Abhishek V — Telemetry & Payload Generator -->
+<!-- JS modules in dependency order -->
+<script src="js/metrics.js"></script>
+<script src="js/trace.js"></script>
+<script src="js/coap.js"></script>
+<script src="js/graph.js"></script>
+<script src="js/battery.js"></script>
+<script src="js/sla.js"></script>
 <script src="js/telemetry.js"></script>
-
-<!-- Anand S — Gateway Queue Logic -->
 <script src="js/gateway.js"></script>
-
-<!-- Ameen P Jami — Terminal Console & Data Export -->
 <script src="js/terminal.js"></script>
-
-<!-- George S Thuruthippillil — Canvas Engine & Layout -->
 <script src="js/canvas.js"></script>
-
-<!-- Abhiram Ranjith — Particle & Animation Loop -->
 <script src="js/particles.js"></script>
-
-<!-- Naveen S — Drag-and-Drop & Interactivity -->
 <script src="js/drag.js"></script>
-
-<!-- Aditya M Manojkumar — Chart.js Analytics Engine -->
 <script src="js/charts.js"></script>
-
-<!-- Adithyan Sreekumar — Preset Scenarios & Topologies -->
+<script src="js/dashboard.js"></script>
+<script src="js/inspector.js"></script>
 <script src="js/scenarios.js"></script>
-
-<!-- Jebin Thankachen Sabu — Chaos Sliders & Fault Injection -->
 <script src="js/chaos.js"></script>
-
-<!-- Levin Polly — Control Panel & UI Layout -->
 <script src="js/ui.js"></script>
-
-<!-- Joel Lijo Mathew — Team Lead: App Bootstrap + Web Worker Architecture -->
 <script src="js/main.js"></script>
 
 </body>
