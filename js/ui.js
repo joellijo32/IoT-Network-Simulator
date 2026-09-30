@@ -26,6 +26,12 @@ const UIController = (() => {
     document.getElementById('mobile-btn-step')?.addEventListener('click', () => { onStep(); });
     document.getElementById('mobile-btn-reset')?.addEventListener('click', () => { onReset(); });
 
+    // Mobile quick bar controls (below topbar)
+    document.getElementById('mobile-bar-btn-start')?.addEventListener('click', () => { onStart(); });
+    document.getElementById('mobile-bar-btn-pause')?.addEventListener('click', () => { onPause(); });
+    document.getElementById('mobile-bar-btn-step')?.addEventListener('click', () => { onStep(); });
+    document.getElementById('mobile-bar-btn-reset')?.addEventListener('click', () => { onReset(); });
+
     // Drawer open/close
     const menuBtn = document.getElementById('btn-topbar-menu');
     const drawer = document.getElementById('topbar-drawer');
@@ -227,28 +233,27 @@ const UIController = (() => {
     const isStopped = (state === 'stopped');
     const startText = isPaused ? '▶ Resume' : '▶ Start';
 
-    ['btn-start', 'mobile-btn-start'].forEach(id => {
+    ['btn-start', 'mobile-btn-start', 'mobile-bar-btn-start'].forEach(id => {
       const b = document.getElementById(id);
       if (b) { b.disabled = isRunning; b.textContent = startText; }
     });
-    ['btn-pause', 'mobile-btn-pause'].forEach(id => {
+    ['btn-pause', 'mobile-btn-pause', 'mobile-bar-btn-pause'].forEach(id => {
       const b = document.getElementById(id);
       if (b) b.disabled = !isRunning;
     });
-    ['btn-step', 'mobile-btn-step'].forEach(id => {
+    ['btn-step', 'mobile-btn-step', 'mobile-bar-btn-step'].forEach(id => {
       const b = document.getElementById(id);
       if (b) b.disabled = false;
     });
-    ['btn-reset', 'mobile-btn-reset'].forEach(id => {
+    ['btn-reset', 'mobile-btn-reset', 'mobile-bar-btn-reset'].forEach(id => {
       const b = document.getElementById(id);
       if (b) b.disabled = isStopped;
     });
 
-    const badge = document.getElementById('sim-status');
-    if (badge) {
+    document.querySelectorAll('.status-badge').forEach(badge => {
       badge.className = `status-badge status-${state === 'paused' ? 'paused' : state}`;
       badge.textContent = state.toUpperCase();
-    }
+    });
   }
 
   function updateHUD(metrics) {

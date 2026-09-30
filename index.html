@@ -122,6 +122,17 @@
     </div>
   </div>
 
+  <!-- Mobile Quick Controls Bar (visible on mobile only, below topbar) -->
+  <div id="mobile-quick-bar" class="mobile-quick-bar">
+    <span id="mobile-sim-status" class="status-badge status-stopped">STOPPED</span>
+    <div class="mobile-quick-buttons">
+      <button id="mobile-bar-btn-start" class="btn btn-primary" title="Start simulation">▶ Start</button>
+      <button id="mobile-bar-btn-pause" class="btn btn-warning" title="Pause simulation" disabled>⏸ Pause</button>
+      <button id="mobile-bar-btn-step" class="btn btn-info" title="Step simulation" disabled>⏭ Step</button>
+      <button id="mobile-bar-btn-reset" class="btn btn-info" title="Reset simulation" disabled>↺ Reset</button>
+    </div>
+  </div>
+
   <!-- Workspace tab switcher (keys 1/2/3) -->
   <nav id="workspace-tabs" aria-label="Workspace switcher">
     <button class="ws-tab active" data-view="studio" title="Topology Studio"><kbd>1</kbd> 🧪 Topology Studio</button>
