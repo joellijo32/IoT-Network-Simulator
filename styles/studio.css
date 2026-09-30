@@ -35,3 +35,54 @@
   padding: 5px 12px; border-radius: 20px; display: none; z-index: 40;
 }
 #link-draft-hint.show { display: block; }
+
+@media (max-width: 768px) {
+  #studio-toolbar {
+    max-width: 95vw;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: 4px 6px;
+    gap: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tool-btn {
+    padding: 5px 8px;
+    font-size: 10.5px;
+    flex-shrink: 0;
+  }
+  .tool-sep {
+    height: 16px;
+    margin: 0 1px;
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 550px) {
+  #canvas-badge {
+    top: auto;
+    bottom: 36px;
+    left: 8px;
+    font-size: 9.5px;
+    padding: 3px 7px;
+    background: rgba(0,0,0,0.75);
+  }
+  #studio-statusbar {
+    bottom: 6px;
+    left: 8px;
+    right: 8px;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  #studio-statusbar .pill {
+    padding: 2px 7px;
+    font-size: 9.5px;
+  }
+  #link-draft-hint {
+    bottom: 56px;
+    font-size: 10px;
+    padding: 4px 10px;
+    max-width: 90vw;
+    text-align: center;
+  }
+}
+

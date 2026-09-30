@@ -55,14 +55,72 @@
     <div class="divider"></div>
     <span id="sim-status" class="status-badge status-stopped">STOPPED</span>
     <div class="hud-strip">
-      <div class="hud-item"><span class="hud-label">Sent</span><span id="hud-sent" class="hud-value">0</span></div>
-      <div class="hud-item"><span class="hud-label">Delivered</span><span id="hud-delivered" class="hud-value green">0</span></div>
-      <div class="hud-item"><span class="hud-label">Dropped</span><span id="hud-dropped" class="hud-value red">0</span></div>
-      <div class="hud-item"><span class="hud-label">Loss</span><span id="hud-loss" class="hud-value orange">0.0%</span></div>
-      <div class="hud-item"><span class="hud-label">Avg Latency</span><span id="hud-latency" class="hud-value blue">0.0 ms</span></div>
-      <div class="hud-item"><span class="hud-label">Avail</span><span id="hud-avail" class="hud-value amber">100.0%</span></div>
+      <div class="hud-item"><span class="hud-label">Sent</span><span id="hud-sent" class="hud-value" data-hud="sent">0</span></div>
+      <div class="hud-item"><span class="hud-label">Delivered</span><span id="hud-delivered" class="hud-value green" data-hud="delivered">0</span></div>
+      <div class="hud-item"><span class="hud-label">Dropped</span><span id="hud-dropped" class="hud-value red" data-hud="dropped">0</span></div>
+      <div class="hud-item"><span class="hud-label">Loss</span><span id="hud-loss" class="hud-value orange" data-hud="loss">0.0%</span></div>
+      <div class="hud-item"><span class="hud-label">Avg Latency</span><span id="hud-latency" class="hud-value blue" data-hud="latency">0.0 ms</span></div>
+      <div class="hud-item"><span class="hud-label">Avail</span><span id="hud-avail" class="hud-value amber" data-hud="avail">100.0%</span></div>
     </div>
+    <button id="btn-topbar-menu" class="btn btn-ghost topbar-menu-btn" title="Toggle navigation & HUD" aria-label="Toggle navigation menu">
+      <span class="menu-icon">☰</span> <span class="menu-text">Menu</span>
+    </button>
   </header>
+
+  <!-- Mobile Topbar Drawer Modal/Overlay -->
+  <div id="topbar-drawer" class="topbar-drawer">
+    <div class="topbar-drawer-content">
+      <div class="topbar-drawer-header">
+        <h3>⚙️ Controls & Metrics</h3>
+        <button id="btn-topbar-drawer-close" class="btn btn-ghost" title="Close menu">✕</button>
+      </div>
+      <div class="topbar-drawer-body">
+        <!-- Mobile HUD Grid -->
+        <div class="mobile-hud-section">
+          <div class="mobile-section-title">📊 Network HUD Metrics</div>
+          <div class="mobile-hud-grid">
+            <div class="mobile-hud-card"><span class="hud-label">Sent</span><span class="hud-value" data-hud="sent">0</span></div>
+            <div class="mobile-hud-card"><span class="hud-label">Delivered</span><span class="hud-value green" data-hud="delivered">0</span></div>
+            <div class="mobile-hud-card"><span class="hud-label">Dropped</span><span class="hud-value red" data-hud="dropped">0</span></div>
+            <div class="mobile-hud-card"><span class="hud-label">Loss</span><span class="hud-value orange" data-hud="loss">0.0%</span></div>
+            <div class="mobile-hud-card"><span class="hud-label">Avg Latency</span><span class="hud-value blue" data-hud="latency">0.0 ms</span></div>
+            <div class="mobile-hud-card"><span class="hud-label">Availability</span><span class="hud-value amber" data-hud="avail">100.0%</span></div>
+          </div>
+        </div>
+
+        <!-- Mobile Controls Section -->
+        <div class="mobile-controls-section">
+          <div class="mobile-section-title">🏭 Preset Topology</div>
+          <select id="scenario-select-mobile" class="mobile-scenario-select" title="Select preset topology">
+            <option value="smart-factory">🏭 Smart Factory</option>
+            <option value="unstable-wireless">📡 Unstable Wireless</option>
+            <option value="smart-city">🌆 Smart City</option>
+            <option value="__custom">🧩 Custom (Studio)</option>
+          </select>
+        </div>
+
+        <div class="mobile-controls-section">
+          <div class="mobile-section-title">▶️ Simulation Playback</div>
+          <div class="mobile-sim-buttons">
+            <button id="mobile-btn-start" class="btn btn-primary">▶ Start</button>
+            <button id="mobile-btn-pause" class="btn btn-warning" disabled>⏸ Pause</button>
+            <button id="mobile-btn-step" class="btn btn-info">⏭ Step</button>
+            <button id="mobile-btn-reset" class="btn btn-info" disabled>↺ Reset</button>
+          </div>
+        </div>
+
+        <div class="mobile-controls-section">
+          <div class="mobile-section-title">⚡ Speed Multiplier</div>
+          <div class="mobile-speed-buttons">
+            <button id="mobile-btn-speed-0_5" class="btn-speed">0.5×</button>
+            <button id="mobile-btn-speed-1" class="btn-speed active">1×</button>
+            <button id="mobile-btn-speed-2" class="btn-speed">2×</button>
+            <button id="mobile-btn-speed-5" class="btn-speed">5×</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Workspace tab switcher (keys 1/2/3) -->
   <nav id="workspace-tabs" aria-label="Workspace switcher">

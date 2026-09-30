@@ -258,6 +258,72 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 .export-buttons { display: flex; gap: 8px; margin-top: 8px; }
 .export-buttons .btn { flex: 1; justify-content: center; font-size: 11px; padding: 6px 8px; }
 
+.topbar-menu-btn {
+  display: none;
+  margin-left: auto;
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+}
+
+/* Mobile Topbar Drawer Modal/Overlay */
+.topbar-drawer {
+  position: fixed; inset: 0; z-index: 250;
+  background: rgba(0,0,0,0.75); backdrop-filter: blur(5px);
+  display: none; align-items: flex-start; justify-content: center;
+  padding: 0; opacity: 0; transition: opacity 0.2s ease;
+}
+.topbar-drawer.open {
+  display: flex; opacity: 1;
+}
+.topbar-drawer-content {
+  width: 100%; max-width: 520px;
+  background: #0d1424; border: 1px solid var(--border);
+  border-radius: 0 0 16px 16px; max-height: 88vh;
+  display: flex; flex-direction: column; overflow: hidden;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.7);
+  animation: drawerSlideDown 0.22s ease-out;
+}
+@keyframes drawerSlideDown {
+  from { transform: translateY(-30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.topbar-drawer-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; background: #080c16; border-bottom: 1px solid var(--border);
+}
+.topbar-drawer-header h3 { font-size: 13px; color: var(--accent-cyan); }
+.topbar-drawer-body {
+  padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;
+}
+.mobile-section-title {
+  font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--text-dim); margin-bottom: 8px;
+}
+.mobile-hud-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+}
+.mobile-hud-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 8px 10px;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+}
+.mobile-hud-card .hud-label { font-size: 9px; margin-bottom: 2px; }
+.mobile-hud-card .hud-value { font-size: 15px; }
+
+.mobile-scenario-select {
+  width: 100%; background: var(--bg-card); color: var(--text-primary);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 8px 10px; font-size: 12.5px;
+}
+.mobile-sim-buttons {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+}
+.mobile-sim-buttons .btn { justify-content: center; width: 100%; padding: 8px; }
+.mobile-speed-buttons {
+  display: flex; gap: 6px;
+}
+.mobile-speed-buttons .btn-speed { flex: 1; padding: 7px; text-align: center; }
+
 [data-tip] { position: relative; cursor: help; }
 [data-tip]::after {
   content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); left: 50%;
@@ -269,7 +335,79 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 [data-tip]:hover::after { opacity: 1; }
 
 @media (max-width: 900px) {
-  #studio-layout { grid-template-columns: 1fr; grid-template-areas: "canvas" "side"; grid-template-rows: 55vh 1fr; }
-  .hud-strip { display: none; }
-  #inspector-drawer { width: 100%; }
+  #topbar {
+    padding: 0 10px;
+  }
+  #topbar #scenario-select,
+  #topbar #btn-step,
+  #topbar #btn-reset,
+  #topbar .speed-group,
+  #topbar .divider {
+    display: none;
+  }
+  #topbar .brand {
+    margin-right: auto;
+  }
+  #topbar .brand-title {
+    font-size: 12px;
+  }
+  .hud-strip {
+    display: none;
+  }
+  .topbar-menu-btn {
+    display: inline-flex;
+  }
+  #studio-layout {
+    grid-template-columns: 1fr;
+    grid-template-areas: "canvas" "side";
+    grid-template-rows: 48vh 1fr;
+  }
+  #networkCanvas {
+    touch-action: none;
+  }
+  #inspector-drawer {
+    width: 100%;
+  }
+  .export-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+}
+
+@media (max-width: 600px) {
+  #topbar .brand-title {
+    max-width: 110px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ws-tab {
+    flex: 1;
+    justify-content: center;
+    padding: 0 4px;
+    font-size: 11px;
+  }
+  .ws-tab kbd {
+    display: none;
+  }
+  .mobile-hud-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .kv-grid {
+    grid-template-columns: minmax(85px, auto) 1fr;
+    gap: 4px 6px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  #pdu-modal {
+    width: 95vw;
+    padding: 12px;
+  }
+  .pdu-layer dl {
+    grid-template-columns: 90px 1fr;
+    font-size: 11px;
+  }
 }

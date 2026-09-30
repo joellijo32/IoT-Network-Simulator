@@ -15,30 +15,62 @@ const UIController = (() => {
   let currentSpeed = 1;
 
   function init() {
-    document.getElementById('btn-start').addEventListener('click', onStart);
-    document.getElementById('btn-pause').addEventListener('click', onPause);
-    document.getElementById('btn-step').addEventListener('click', onStep);
-    document.getElementById('btn-reset').addEventListener('click', onReset);
+    document.getElementById('btn-start')?.addEventListener('click', onStart);
+    document.getElementById('btn-pause')?.addEventListener('click', onPause);
+    document.getElementById('btn-step')?.addEventListener('click', onStep);
+    document.getElementById('btn-reset')?.addEventListener('click', onReset);
+
+    // Mobile drawer controls
+    document.getElementById('mobile-btn-start')?.addEventListener('click', () => { onStart(); });
+    document.getElementById('mobile-btn-pause')?.addEventListener('click', () => { onPause(); });
+    document.getElementById('mobile-btn-step')?.addEventListener('click', () => { onStep(); });
+    document.getElementById('mobile-btn-reset')?.addEventListener('click', () => { onReset(); });
+
+    // Drawer open/close
+    const menuBtn = document.getElementById('btn-topbar-menu');
+    const drawer = document.getElementById('topbar-drawer');
+    const drawerCloseBtn = document.getElementById('btn-topbar-drawer-close');
+
+    if (menuBtn && drawer) {
+      menuBtn.addEventListener('click', () => drawer.classList.toggle('open'));
+    }
+    if (drawerCloseBtn && drawer) {
+      drawerCloseBtn.addEventListener('click', () => drawer.classList.remove('open'));
+    }
+    if (drawer) {
+      drawer.addEventListener('click', e => {
+        if (e.target === drawer) drawer.classList.remove('open');
+      });
+    }
 
     SPEED_OPTIONS.forEach(speed => {
-      const btn = document.getElementById(`btn-speed-${speed.toString().replace('.', '_')}`);
+      const speedStr = speed.toString().replace('.', '_');
+      const btn = document.getElementById(`btn-speed-${speedStr}`);
+      const mBtn = document.getElementById(`mobile-btn-speed-${speedStr}`);
       if (btn) btn.addEventListener('click', () => onSpeed(speed));
+      if (mBtn) mBtn.addEventListener('click', () => onSpeed(speed));
     });
 
     const scenarioSelect = document.getElementById('scenario-select');
-    if (scenarioSelect) {
-      scenarioSelect.addEventListener('change', e => {
-        if (e.target.value === '__custom') {
-          Terminal.log('🧩 Custom topology selected — build in Studio, autosaved to localStorage', 'info');
-          const nodes = GraphStore.getNodes(), links = GraphStore.toCanvasLinks();
-          if (nodes.length) SimEngine.onTopologyChanged(nodes, links);
-          if (state === 'running') { SimEngine.stop(); SimEngine.start(); }
-          return;
-        }
-        Scenarios.load(e.target.value);
+    const scenarioSelectMobile = document.getElementById('scenario-select-mobile');
+
+    function onScenarioChange(val) {
+      if (scenarioSelect && scenarioSelect.value !== val) scenarioSelect.value = val;
+      if (scenarioSelectMobile && scenarioSelectMobile.value !== val) scenarioSelectMobile.value = val;
+
+      if (val === '__custom') {
+        Terminal.log('🧩 Custom topology selected — build in Studio, autosaved to localStorage', 'info');
+        const nodes = GraphStore.getNodes(), links = GraphStore.toCanvasLinks();
+        if (nodes.length) SimEngine.onTopologyChanged(nodes, links);
         if (state === 'running') { SimEngine.stop(); SimEngine.start(); }
-      });
+        return;
+      }
+      Scenarios.load(val);
+      if (state === 'running') { SimEngine.stop(); SimEngine.start(); }
     }
+
+    if (scenarioSelect) scenarioSelect.addEventListener('change', e => onScenarioChange(e.target.value));
+    if (scenarioSelectMobile) scenarioSelectMobile.addEventListener('change', e => onScenarioChange(e.target.value));
 
     // Workspace tabs
     document.querySelectorAll('.ws-tab').forEach(btn => {
@@ -150,8 +182,11 @@ const UIController = (() => {
     ParticleEngine.setSpeed(speed);
     Terminal.log(`⚡ Speed set to ${speed}×`, 'debug');
     SPEED_OPTIONS.forEach(s => {
-      const btn = document.getElementById(`btn-speed-${s.toString().replace('.', '_')}`);
+      const speedStr = s.toString().replace('.', '_');
+      const btn = document.getElementById(`btn-speed-${speedStr}`);
+      const mBtn = document.getElementById(`mobile-btn-speed-${speedStr}`);
       if (btn) btn.classList.toggle('active', s === speed);
+      if (mBtn) mBtn.classList.toggle('active', s === speed);
     });
   }
 
@@ -176,7 +211,9 @@ const UIController = (() => {
         GraphStore.importJSON(JSON.parse(r.result));
         DragEngine.syncTopologyToEngines();
         const sel = document.getElementById('scenario-select');
+        const selM = document.getElementById('scenario-select-mobile');
         if (sel) sel.value = '__custom';
+        if (selM) selM.value = '__custom';
         Terminal.log(`📤 Topology imported: ${GraphStore.getNodes().length} nodes, ${GraphStore.getLinks().length} links`, 'success');
       } catch (err) { Terminal.log(`❌ Import failed: ${err.message}`, 'error'); }
       e.target.value = '';
@@ -185,17 +222,28 @@ const UIController = (() => {
   }
 
   function updateButtons() {
-    const btnStart = document.getElementById('btn-start');
-    const btnPause = document.getElementById('btn-pause');
-    const btnStep = document.getElementById('btn-step');
-    const btnReset = document.getElementById('btn-reset');
-    if (btnStart) {
-      btnStart.disabled = (state === 'running');
-      btnStart.textContent = (state === 'paused') ? '▶ Resume' : '▶ Start';
-    }
-    if (btnPause) btnPause.disabled = (state !== 'running');
-    if (btnStep) btnStep.disabled = (state === 'stopped' && false) ? true : false; // always enabled (auto-starts)
-    if (btnReset) btnReset.disabled = (state === 'stopped');
+    const isRunning = (state === 'running');
+    const isPaused = (state === 'paused');
+    const isStopped = (state === 'stopped');
+    const startText = isPaused ? '▶ Resume' : '▶ Start';
+
+    ['btn-start', 'mobile-btn-start'].forEach(id => {
+      const b = document.getElementById(id);
+      if (b) { b.disabled = isRunning; b.textContent = startText; }
+    });
+    ['btn-pause', 'mobile-btn-pause'].forEach(id => {
+      const b = document.getElementById(id);
+      if (b) b.disabled = !isRunning;
+    });
+    ['btn-step', 'mobile-btn-step'].forEach(id => {
+      const b = document.getElementById(id);
+      if (b) b.disabled = false;
+    });
+    ['btn-reset', 'mobile-btn-reset'].forEach(id => {
+      const b = document.getElementById(id);
+      if (b) b.disabled = isStopped;
+    });
+
     const badge = document.getElementById('sim-status');
     if (badge) {
       badge.className = `status-badge status-${state === 'paused' ? 'paused' : state}`;
@@ -204,19 +252,24 @@ const UIController = (() => {
   }
 
   function updateHUD(metrics) {
-    setEl('hud-sent', metrics.totalSent);
-    setEl('hud-delivered', metrics.totalDelivered);
-    setEl('hud-dropped', metrics.totalDropped);
-    setEl('hud-latency', `${(metrics.avgLatency || 0).toFixed(1)} ms`);
+    setHudVal('sent', metrics.totalSent);
+    setHudVal('delivered', metrics.totalDelivered);
+    setHudVal('dropped', metrics.totalDropped);
+    setHudVal('latency', `${(metrics.avgLatency || 0).toFixed(1)} ms`);
     const lossPercent = metrics.totalSent > 0
       ? ((metrics.totalDropped / metrics.totalSent) * 100).toFixed(1) : '0.0';
-    setEl('hud-loss', `${lossPercent}%`);
+    setHudVal('loss', `${lossPercent}%`);
   }
 
-  function setEl(id, value) { const el = document.getElementById(id); if (el) el.textContent = value; }
+  function setHudVal(key, value) {
+    document.querySelectorAll(`[data-hud="${key}"]`).forEach(el => {
+      el.textContent = value;
+    });
+  }
 
   return {
     init, updateHUD, switchView, onPause,
     getState: () => state, getSpeed: () => currentSpeed, getView: () => view,
   };
 })();
+
