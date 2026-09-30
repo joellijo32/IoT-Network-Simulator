@@ -144,10 +144,10 @@ html, body {
 }
 #scenario-select option { background: #161f30; }
 
-#sim-status {
+.status-badge {
   font-family: var(--font-mono); font-size: 10px; font-weight: 700;
   letter-spacing: 1px; padding: 3px 10px; border-radius: 20px;
-  border: 1px solid; flex-shrink: 0;
+  border: 1px solid; flex-shrink: 0; display: inline-block;
 }
 .status-stopped { color: var(--text-dim); border-color: var(--text-dim); background: rgba(97,97,97,0.1); }
 .status-running { color: var(--accent-green); border-color: var(--accent-green); background: rgba(76,175,80,0.1); }
