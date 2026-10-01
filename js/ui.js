@@ -115,6 +115,7 @@ const UIController = (() => {
       requestAnimationFrame(() => {
         try { CanvasEngine.resize(); } catch (e) {}
         try { CanvasEngine.renderNow(); } catch (e) {}
+        try { DragEngine.updateInstructionTexts?.(); } catch (e) {}
       });
     }
   }
