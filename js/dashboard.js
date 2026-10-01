@@ -84,8 +84,9 @@ const DashboardEngine = (() => {
     const ka = document.getElementById('kpi-avail');
     if (ka) ka.className = 'kpi-value ' + (avail >= 99 ? 'good' : avail >= 90 ? 'warn' : 'bad');
     try {
-      const ha = document.getElementById('hud-avail');
-      if (ha) ha.textContent = avail.toFixed(1) + '%';
+      document.querySelectorAll('[data-hud="avail"]').forEach(ha => {
+        ha.textContent = avail.toFixed(1) + '%';
+      });
     } catch (e) {}
   }
 
